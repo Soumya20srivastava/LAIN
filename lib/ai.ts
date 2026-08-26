@@ -2,7 +2,7 @@ import type { Explanation, ExplanationStatus, UsageExample } from "./types";
 import { buildMessages } from "./prompts";
 
 const BASE_URL = process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1";
-const MODEL = process.env.OPENROUTER_MODEL ?? "stealth/ox-alpha";
+const MODEL = process.env.OPENROUTER_MODEL?.trim().replace(/^["']|["']$/g, "") || "stealth/ox-alpha";
 const TIMEOUT_MS = 60_000;
 
 const VALID_STATUSES: ExplanationStatus[] = [
@@ -90,10 +90,10 @@ function parseExplanation(raw: string): Explanation {
 }
 
 export async function explainTerm(query: string): Promise<Explanation> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY?.trim().replace(/^["']|["']$/g, "");
   if (!apiKey) {
     throw new ExplainError(
-      "Server is not configured yet: add your OPENROUTER_API_KEY to .env.local and restart the app.",
+      "Server is not configured yet: set OPENROUTER_API_KEY in your hosting environment variables (Netlify: Site configuration > Environment variables), then redeploy.",
       503
     );
   }
@@ -136,14 +136,14 @@ export async function explainTerm(query: string): Promise<Explanation> {
     } catch {}
 
     if (response.status === 401) {
-      throw new ExplainError("OpenRouter rejected the API key. Check OPENROUTER_API_KEY in .env.local.", 401);
+      throw new ExplainError("OpenRouter rejected the API key. Re-check OPENROUTER_API_KEY in your hosting environment variables (no spaces, quotes, or truncation), then redeploy.", 401);
     }
     if (response.status === 402) {
       throw new ExplainError("The OpenRouter account behind this key is out of credits.", 402);
     }
     if (response.status === 404) {
       throw new ExplainError(
-        `Model "${MODEL}" was not found on OpenRouter. Set OPENROUTER_MODEL in .env.local to a valid model id.`,
+        `Model "${MODEL}" was not found on OpenRouter. Set OPENROUTER_MODEL in your hosting environment variables to a valid model id.`,
         404
       );
     }
